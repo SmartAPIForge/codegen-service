@@ -1,0 +1,55 @@
+{
+  "general": {
+    "id": 1,
+    "name": "testapi",
+    "owner": "aaalace",
+    "version": "1.0",
+    "port": 8080,
+    "autoAuth": false
+  },
+  "models": [
+    {
+      "name": "Book",
+      "fields": [
+        {
+          "name": "id",
+          "type": "int",
+          "isUnique": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "isUnique": false
+        },
+        {
+          "name": "isFinished",
+          "type": "bool",
+          "isUnique": false
+        }
+      ],
+      "methods": [
+        {
+          "type": "GET",
+          "uniqueParam": "id",
+          "responseFields": ["id", "title", "isFinished"],
+          "privateEndpoint": false
+        },
+        {
+          "type": "GET*",
+          "responseFields": ["id", "title"],
+          "privateEndpoint": false
+        },
+        {
+          "type": "POST",
+          "responseFields": ["id", "title"],
+          "privateEndpoint": true
+        },
+        {
+          "type": "DELETE",
+          "responseFields": ["id"],
+          "privateEndpoint": true
+        }
+      ]
+    }
+  ]
+}
