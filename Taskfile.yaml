@@ -1,15 +1,13 @@
-version: "3"
+version: '3'
 
+# launch:
+# - task run
 tasks:
   build:
-    desc: "Build"
     cmds:
       - go build ./cmd/codegen-service/main.go
-  run-dev:
-    desc: "Run in dev"
+  run:
     cmds:
       - CONFIG_PATH=./config/config-dev.yaml ./main
-  run-prod:
-    desc: "Run in prod"
-    cmds:
-      - CONFIG_PATH=./config/config.yaml ./main
+    deps:
+      - build

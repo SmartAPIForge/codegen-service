@@ -1,0 +1,51 @@
+package db
+
+import (
+    "database/sql"
+    "fmt"
+    _ "github.com/mattn/go-sqlite3"
+    "io/ioutil"
+    "log"
+    "strings"
+)
+
+var db *sql.DB
+
+func InitDB() {
+    var err error
+    dbPath := "./main.db"
+
+    db, err = sql.Open("sqlite3", dbPath)
+    if err != nil {
+        log.Fatalf("Failed to connect to database: %v", err)
+    }
+
+    fmt.Println("Database connected successfully:", dbPath)
+}
+
+func GetDB() *sql.DB {
+    return db
+}
+
+func ApplyMigrations(migrationFilePath string) {
+    migrationContent, err := ioutil.ReadFile(migrationFilePath)
+    if err != nil {
+        log.Fatalf("Failed to read migration file: %v", err)
+    }
+
+    queries := strings.Split(string(migrationContent), ";")
+
+    for _, query := range queries {
+        query = strings.TrimSpace(query)
+        if query == "" {
+            continue
+        }
+
+        _, err := db.Exec(query)
+        if err != nil {
+            log.Fatalf("Failed to apply migration: %v\nQuery: %s", err, query)
+        }
+    }
+
+    fmt.Println("Migrations applied successfully")
+}

@@ -1,69 +1,48 @@
 package main
 
-import "codegen-service/internal/engine"
-
-// сделать проверку на обратную совместимость с предыдущей версией и
-// уточнять у пользователя точно ли он хочет внести изменения
-
-const contract = `{
-  "general": {
-    "id": 1,
-    "name": "testapi",
-    "owner": "aaalace",
-    "version": "1.0",
-    "port": 8070,
-    "autoAuth": false
-  },
-  "models": [
-    {
-      "name": "Book",
-      "fields": [
-        {
-          "name": "id",
-          "type": "int",
-          "isUnique": true
-        },
-        {
-          "name": "title",
-          "type": "string",
-          "isUnique": false
-        },
-        {
-          "name": "isFinished",
-          "type": "bool",
-          "isUnique": false
-        }
-      ],
-      "methods": [
-        {
-          "type": "GET",
-          "uniqueParam": "id",
-          "responseFields": ["id", "title", "isFinished"],
-          "privateEndpoint": false
-        },
-        {
-          "type": "GET*",
-          "responseFields": ["id", "title"],
-          "privateEndpoint": false
-        },
-        {
-          "type": "POST",
-          "responseFields": ["id", "title"],
-          "privateEndpoint": true
-        },
-        {
-          "type": "DELETE",
-          "responseFields": ["id"],
-          "privateEndpoint": true
-        }
-      ]
-    }
-  ]
-}`
+import (
+	"codegen-service/internal/engine"
+	"fmt"
+	"io/ioutil"
+)
 
 func main() {
+	contract, _ := readFile("example.saf.json")
+
+	// setup generation engine
 	eng := engine.NewEngine(contract)
 	saf := eng.ParseSourceToSAF()
-	// is saf.AutoAuth => generate auth
-	eng.Generator.GenerateMain(&saf.General)
+	eng.SetupGenerator(saf)
+
+	// setup project launch environment
+	eng.Generator.CopyDockerfile()
+	eng.Generator.CopyDockerCompose()
+	eng.Generator.CopyTaskFile()
+
+	// setup & generate migrations
+	eng.Generator.GenerateMigrations(saf)
+
+	// create db & db client
+	eng.Generator.GenerateDB()
+
+	// generate golang deps
+	eng.Generator.GenerateMod(saf)
+
+	// generate api
+	eng.Generator.GenerateMain(saf)
+	// todo generate auth
+	for _, model := range saf.Models {
+		eng.Generator.GenerateModel(&model)
+		// todo generate service
+		eng.Generator.GenerateDTOs(&model)
+		eng.Generator.GenerateController(&model)
+	}
+}
+
+func readFile(filePath string) (string, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file: %w", err)
+	}
+	return string(data), nil
 }

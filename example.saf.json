@@ -3,51 +3,48 @@
     "id": 1,
     "name": "testapi",
     "owner": "aaalace",
-    "version": "1.0",
     "port": 8080,
     "autoAuth": false
   },
   "models": [
     {
-      "name": "Book",
+      "name": "book",
       "fields": [
         {
+          "primary": true,
           "name": "id",
           "type": "int",
           "isUnique": true
         },
         {
+          "primary": false,
           "name": "title",
           "type": "string",
           "isUnique": false
         },
         {
-          "name": "isFinished",
+          "primary": false,
+          "name": "finished",
           "type": "bool",
           "isUnique": false
         }
       ],
-      "methods": [
+      "endpoints": [
         {
           "type": "GET",
-          "uniqueParam": "id",
-          "responseFields": ["id", "title", "isFinished"],
-          "privateEndpoint": false
-        },
-        {
-          "type": "GET*",
-          "responseFields": ["id", "title"],
-          "privateEndpoint": false
+          "query": ["id", "title"],
+          "responseDTO": ["id", "title", "finished"],
+          "private": false
         },
         {
           "type": "POST",
-          "responseFields": ["id", "title"],
-          "privateEndpoint": true
+          "responseDTO": ["id", "title"],
+          "private": true
         },
         {
           "type": "DELETE",
-          "responseFields": ["id"],
-          "privateEndpoint": true
+          "responseDTO": ["id"],
+          "private": true
         }
       ]
     }

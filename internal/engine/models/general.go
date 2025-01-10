@@ -1,4 +1,4 @@
-package tree
+package models
 
 type General struct {
 	Id       int    `json:"id"`

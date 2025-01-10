@@ -1,0 +1,18 @@
+package {{.ModelName}}
+
+import (
+	"github.com/gorilla/mux"
+	"net/http"
+)
+
+func Register{{.ModelNameUC}}Routes(r *mux.Router) {
+{{- range .Routes}}
+	r.HandleFunc("/{{$.ModelName}}", {{.Method}}).Methods("{{.Method}}")
+{{- end}}
+}
+
+{{range .Routes}}
+func {{.Method}}(w http.ResponseWriter, r *http.Request) {
+
+}
+{{end}}

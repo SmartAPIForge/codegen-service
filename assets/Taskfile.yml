@@ -1,0 +1,14 @@
+version: '3'
+
+# launch:
+# - task run
+tasks:
+  tidy:
+    cmds:
+      - go mod tidy
+
+  run:
+    cmds:
+      - docker-compose up --build
+    deps:
+      - tidy

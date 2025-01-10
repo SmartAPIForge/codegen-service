@@ -1,4 +1,4 @@
-package tree
+package models
 
 type Saf struct {
 	General General `json:"general"`
