@@ -18,7 +18,7 @@ func main() {
 	r := mux.NewRouter()
 	registerRoutes(r)
 
-	log.Fatal(http.ListenAndServe(":{{ .General.Port }}", r))
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 func registerRoutes(r *mux.Router) {

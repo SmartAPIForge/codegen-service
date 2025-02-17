@@ -1,6 +1,5 @@
 {
   "general": {
-    "id": 1,
     "name": "testapi",
     "owner": "aaalace",
     "port": 8080,
@@ -8,7 +7,7 @@
   },
   "models": [
     {
-      "name": "book",
+      "name": "starship",
       "fields": [
         {
           "primary": true,

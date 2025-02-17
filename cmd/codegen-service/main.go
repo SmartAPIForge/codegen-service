@@ -1,48 +1,31 @@
 package main
 
 import (
-	"codegen-service/internal/engine"
-	"fmt"
-	"io/ioutil"
+	"codegen-service/internal/app"
+	"codegen-service/internal/config"
+	"codegen-service/internal/lib/logger"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	contract, _ := readFile("example.saf.json")
+	cfg := config.MustLoad()
 
-	// setup generation engine
-	eng := engine.NewEngine(contract)
-	saf := eng.ParseSourceToSAF()
-	eng.SetupGenerator(saf)
+	log := logger.MustSetupLogger(cfg.Env)
 
-	// setup project launch environment
-	eng.Generator.CopyDockerfile()
-	eng.Generator.CopyDockerCompose()
-	eng.Generator.CopyTaskFile()
+	application := app.NewApp(
+		log,
+		cfg.GRPC.Port,
+	)
+	application.GrpcApp.MustRun()
 
-	// setup & generate migrations
-	eng.Generator.GenerateMigrations(saf)
-
-	// create db & db client
-	eng.Generator.GenerateDB()
-
-	// generate golang deps
-	eng.Generator.GenerateMod(saf)
-
-	// generate api
-	eng.Generator.GenerateMain(saf)
-	// todo generate auth
-	for _, model := range saf.Models {
-		eng.Generator.GenerateModel(&model)
-		// todo generate service
-		eng.Generator.GenerateDTOs(&model)
-		eng.Generator.GenerateController(&model)
-	}
+	stopWait(application)
 }
 
-func readFile(filePath string) (string, error) {
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file: %w", err)
-	}
-	return string(data), nil
+func stopWait(application *app.App) {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	<-stop
+	application.GrpcApp.Stop()
 }

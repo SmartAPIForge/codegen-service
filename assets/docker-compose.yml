@@ -11,9 +11,3 @@ services:
       - DB_PATH=./db/main.db
     volumes:
       - ./db:/app/db
-    networks:
-      - app_network
-
-networks:
-  app_network:
-    driver: bridge
