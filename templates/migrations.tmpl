@@ -1,0 +1,8 @@
+{{- range .Models -}}
+CREATE TABLE IF NOT EXISTS {{ .NameLC }} (
+{{- range .Fields }}
+    {{ .Name }} {{ .SQLType }}{{ if .IsUnique }} UNIQUE{{ end }},
+{{- end}}
+    PRIMARY KEY ({{ .PrimaryKeyField }})
+);
+{{ end -}}

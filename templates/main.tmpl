@@ -1,0 +1,28 @@
+package main
+
+import (
+{{- range .Models}}
+	"{{ $.General.Id }}/{{ .Name }}"
+{{- end}}
+	"{{ .General.Id }}/db"
+	"github.com/gorilla/mux"
+	"log"
+	"net/http"
+)
+
+func main() {
+	migrationFilePath := "./migrations/migration.sql"
+	db.InitDB()
+	db.ApplyMigrations(migrationFilePath)
+
+	r := mux.NewRouter()
+	registerRoutes(r)
+
+	log.Fatal(http.ListenAndServe(":8080", r))
+}
+
+func registerRoutes(r *mux.Router) {
+{{- range .Models}}
+	{{ .Name }}.Register{{ .NameUC }}Routes(r)
+{{- end}}
+}

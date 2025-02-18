@@ -1,0 +1,51 @@
+{
+  "general": {
+    "name": "testapi",
+    "owner": "aaalace",
+    "port": 8080,
+    "autoAuth": false
+  },
+  "models": [
+    {
+      "name": "starship",
+      "fields": [
+        {
+          "primary": true,
+          "name": "id",
+          "type": "int",
+          "isUnique": true
+        },
+        {
+          "primary": false,
+          "name": "title",
+          "type": "string",
+          "isUnique": false
+        },
+        {
+          "primary": false,
+          "name": "finished",
+          "type": "bool",
+          "isUnique": false
+        }
+      ],
+      "endpoints": [
+        {
+          "type": "GET",
+          "query": ["id", "title"],
+          "responseDTO": ["id", "title", "finished"],
+          "private": false
+        },
+        {
+          "type": "POST",
+          "responseDTO": ["id", "title"],
+          "private": true
+        },
+        {
+          "type": "DELETE",
+          "responseDTO": ["id"],
+          "private": true
+        }
+      ]
+    }
+  ]
+}
