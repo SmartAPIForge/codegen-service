@@ -4,21 +4,27 @@ import (
 	"codegen-service/internal/engine"
 	"codegen-service/internal/lib"
 	"codegen-service/internal/lib/sl"
+	"codegen-service/internal/mapper"
+	"codegen-service/internal/redis"
 	"context"
 	"errors"
 	codegenProto "github.com/SmartAPIForge/protos/gen/go/codegen"
 	"log/slog"
+	"math/rand/v2"
 )
 
 type CodegenService struct {
-	log *slog.Logger
+	log         *slog.Logger
+	redisClient *redis.RedisClient
 }
 
 func NewCodegenService(
 	log *slog.Logger,
+	redisClient *redis.RedisClient,
 ) *CodegenService {
 	return &CodegenService{
-		log: log,
+		log:         log,
+		redisClient: redisClient,
 	}
 }
 
@@ -42,12 +48,26 @@ func (a *CodegenService) Generate(
 		log.Error("failed to parse contract", sl.Err(err))
 		return "", ErrInvalidContract
 	}
-
-	log.Info("starting generate:", saf.General.Owner, saf.General.Name)
-	go eng.Proceed(saf)
+	saf.General.Id = lib.ComposeProjectId(saf)
+	saf.General.Port = rand.IntN(65000) // TODO - ask deploy-service
 
 	trackingId := lib.NewUUID()
-	// redisClient.set()
+	err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String())
+	if err != nil {
+		log.Error("writing redis error", sl.Err(err))
+		return "", err
+	}
+
+	log.Info("starting generate:", saf.General.Owner, saf.General.Name)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String())
+			}
+			err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String())
+		}()
+		eng.Proceed(saf)
+	}()
 
 	return trackingId, nil
 }
@@ -58,20 +78,16 @@ func (a *CodegenService) Track(
 ) (codegenProto.GenerationStatus, error) {
 	const op = "codegen.Track"
 
-	//log := a.log.With(
-	//	slog.String("op", op),
-	//	slog.String("id", trackingId),
-	//)
+	log := a.log.With(
+		slog.String("op", op),
+		slog.String("id", trackingId),
+	)
 
-	// redisClient.get()
+	status, err := a.redisClient.GetData(trackingId)
+	if err != nil {
+		log.Error("reading redis error", sl.Err(err))
+		return codegenProto.GenerationStatus_UNKNOWN, err
+	}
 
-	return codegenProto.GenerationStatus_PENDING, nil
-}
-
-func markGenerationAsSuccessful() {
-
-}
-
-func markGenerationAsFailed() {
-
+	return mapper.MapToGenerationStatus(status), nil
 }

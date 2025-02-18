@@ -29,7 +29,7 @@ func (e *Engine) ParseSourceToSAF() (*models.Saf, error) {
 }
 
 func (e *Engine) SetupGenerator(saf *models.Saf) {
-	projectRoot := fmt.Sprintf("output/%s_%s", saf.General.Owner, saf.General.Name)
+	projectRoot := fmt.Sprintf("output/%s", saf.General.Id)
 	e.Generator = generator.NewGenerator(projectRoot)
 	_, err := e.Generator.CreateDir(projectRoot)
 	if err != nil {
@@ -38,25 +38,16 @@ func (e *Engine) SetupGenerator(saf *models.Saf) {
 }
 
 func (e *Engine) Proceed(saf *models.Saf) {
-	saf.General.Id = fmt.Sprintf("%s_%s", saf.General.Owner, saf.General.Name)
-
 	e.SetupGenerator(saf)
 
-	// setup project launch environment
 	e.Generator.CopyDockerfile()
-	e.Generator.CopyDockerCompose()
+	e.Generator.GenerateCompose(saf)
 	e.Generator.CopyTaskFile()
 
-	// setup & generate migrations
 	e.Generator.GenerateMigrations(saf)
-
-	// create db & db client
 	e.Generator.GenerateDB()
 
-	// generate golang deps
 	e.Generator.GenerateMod(saf)
-
-	// generate api
 	e.Generator.GenerateMain(saf)
 	// todo generate auth
 	for _, model := range saf.Models {

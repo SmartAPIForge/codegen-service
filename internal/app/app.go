@@ -2,19 +2,24 @@ package app
 
 import (
 	grpcapp "codegen-service/internal/app/grpc"
+	"codegen-service/internal/redis"
 	codegenservice "codegen-service/internal/services/codegen"
 	"log/slog"
 )
 
 type App struct {
-	GrpcApp *grpcapp.GrpcApp
+	GrpcApp     *grpcapp.GrpcApp
+	RedisClient *redis.RedisClient
 }
 
 func NewApp(
 	log *slog.Logger,
 	grpcPort int,
+	redisAddress string,
+	redisDb int,
 ) *App {
-	codegenService := codegenservice.NewCodegenService(log)
+	redisClient := redis.NewRedisClient(redisAddress, redisDb)
+	codegenService := codegenservice.NewCodegenService(log, redisClient)
 
 	grpcApp := grpcapp.NewGrpcApp(
 		log,
@@ -23,6 +28,7 @@ func NewApp(
 	)
 
 	return &App{
-		GrpcApp: grpcApp,
+		GrpcApp:     grpcApp,
+		RedisClient: redisClient,
 	}
 }

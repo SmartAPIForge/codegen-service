@@ -4,6 +4,7 @@ import (
 	"codegen-service/internal/app"
 	"codegen-service/internal/config"
 	"codegen-service/internal/lib/logger"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,8 @@ func main() {
 	application := app.NewApp(
 		log,
 		cfg.GRPC.Port,
+		cfg.RedisAddress,
+		cfg.RedisDb,
 	)
 	application.GrpcApp.MustRun()
 
@@ -28,4 +31,8 @@ func stopWait(application *app.App) {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 	<-stop
 	application.GrpcApp.Stop()
+	err := application.RedisClient.Close()
+	if err != nil {
+		fmt.Println("failed to break redis connection")
+	}
 }

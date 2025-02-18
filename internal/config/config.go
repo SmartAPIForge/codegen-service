@@ -8,8 +8,10 @@ import (
 )
 
 type Config struct {
-	Env  string // dev || prod
-	GRPC GRPCConfig
+	Env          string // dev || prod
+	GRPC         GRPCConfig
+	RedisAddress string
+	RedisDb      int
 }
 
 type GRPCConfig struct {
@@ -23,6 +25,8 @@ func MustLoad() *Config {
 	env := getEnv("ENV", "dev")
 	grpcPort := getEnvAsInt("GRPC_PORT", 50051)
 	grpcTimeout := getEnvAsDuration("GRPC_TIMEOUT", 10*time.Second)
+	redisAddress := getEnv("REDIS_ADDRESS", "localhost:5252")
+	redisDb := getEnvAsInt("REDIS_DB", 0)
 
 	return &Config{
 		Env: env,
@@ -30,6 +34,8 @@ func MustLoad() *Config {
 			Port:    grpcPort,
 			Timeout: grpcTimeout,
 		},
+		RedisAddress: redisAddress,
+		RedisDb:      redisDb,
 	}
 }
 

@@ -1,10 +1,32 @@
 package generator
 
 import (
+	"codegen-service/internal/engine/models"
+	"codegen-service/internal/engine/raw"
 	"fmt"
 	"io"
 	"os"
 )
+
+func (g *Generator) GenerateCompose(saf *models.Saf) {
+	templateName := "compose.tmpl"
+	pathToDir, err := g.CreateDir(g.projectRoot)
+	outputFile, err := g.CreateFile(fmt.Sprintf("%s/docker-compose.yml", pathToDir))
+	defer outputFile.Close()
+
+	rawData := g.fetchComposeRawData(saf)
+	err = g.templates.ExecuteTemplate(outputFile, templateName, rawData)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (g *Generator) fetchComposeRawData(saf *models.Saf) *raw.ComposeRawData {
+	rawData := raw.ComposeRawData{
+		Port: saf.General.Port,
+	}
+	return &rawData
+}
 
 func (g *Generator) CopyDockerfile() {
 	srcPath := "./assets/Dockerfile"
@@ -24,27 +46,6 @@ func (g *Generator) CopyDockerfile() {
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		panic(fmt.Sprintf("Failed to copy Dockerfile: %v", err))
-	}
-}
-
-func (g *Generator) CopyDockerCompose() {
-	srcPath := "./assets/docker-compose.yml"
-	destPath := fmt.Sprintf("%s/docker-compose.yml", g.projectRoot)
-
-	srcFile, err := os.Open(srcPath)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to open source docker-compose.yml: %v", err))
-	}
-	defer srcFile.Close()
-
-	destFile, err := os.Create(destPath)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create destination docker-compose.yml: %v", err))
-	}
-	defer destFile.Close()
-
-	if _, err := io.Copy(destFile, srcFile); err != nil {
-		panic(fmt.Sprintf("Failed to copy docker-compose.yml: %v", err))
 	}
 }
 
