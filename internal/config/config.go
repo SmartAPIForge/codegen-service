@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"os"
 	"strconv"
@@ -12,6 +13,10 @@ type Config struct {
 	GRPC         GRPCConfig
 	RedisAddress string
 	RedisDb      int
+	S3Path       string
+	S3AccessKey  string
+	S3SecretKey  string
+	S3Bucket     string
 }
 
 type GRPCConfig struct {
@@ -27,6 +32,10 @@ func MustLoad() *Config {
 	grpcTimeout := getEnvAsDuration("GRPC_TIMEOUT", 10*time.Second)
 	redisAddress := getEnv("REDIS_ADDRESS", "localhost:5252")
 	redisDb := getEnvAsInt("REDIS_DB", 0)
+	s3Path := mustGetEnv("S3_PATH")
+	s3AccessKey := mustGetEnv("S3_ACCESS_KEY")
+	s3SecretKey := mustGetEnv("S3_SECRET_KEY")
+	s3Bucket := mustGetEnv("S3_BUCKET")
 
 	return &Config{
 		Env: env,
@@ -36,6 +45,10 @@ func MustLoad() *Config {
 		},
 		RedisAddress: redisAddress,
 		RedisDb:      redisDb,
+		S3Path:       s3Path,
+		S3AccessKey:  s3AccessKey,
+		S3SecretKey:  s3SecretKey,
+		S3Bucket:     s3Bucket,
 	}
 }
 
@@ -50,6 +63,13 @@ func getEnv(key string, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func mustGetEnv(key string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	panic(fmt.Sprintf("Missed important variable in .env - %s", key))
 }
 
 func getEnvAsInt(key string, defaultValue int) int {

@@ -17,9 +17,7 @@ func main() {
 
 	application := app.NewApp(
 		log,
-		cfg.GRPC.Port,
-		cfg.RedisAddress,
-		cfg.RedisDb,
+		cfg,
 	)
 	application.GrpcApp.MustRun()
 

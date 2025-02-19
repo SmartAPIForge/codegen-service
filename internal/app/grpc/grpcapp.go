@@ -20,7 +20,11 @@ type GrpcApp struct {
 	port       int
 }
 
-func NewGrpcApp(log *slog.Logger, codegenService codegenserver.CodegenService, port int) *GrpcApp {
+func NewGrpcApp(
+	log *slog.Logger,
+	codegenService codegenserver.CodegenService,
+	port int,
+) *GrpcApp {
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(
 			logging.PayloadReceived, logging.PayloadSent,

@@ -6,6 +6,7 @@ import (
 	"codegen-service/internal/lib/sl"
 	"codegen-service/internal/mapper"
 	"codegen-service/internal/redis"
+	packerservice "codegen-service/internal/services/packer"
 	"context"
 	"errors"
 	codegenProto "github.com/SmartAPIForge/protos/gen/go/codegen"
@@ -14,17 +15,20 @@ import (
 )
 
 type CodegenService struct {
-	log         *slog.Logger
-	redisClient *redis.RedisClient
+	log           *slog.Logger
+	redisClient   *redis.RedisClient
+	packerService *packerservice.PackerService
 }
 
 func NewCodegenService(
 	log *slog.Logger,
 	redisClient *redis.RedisClient,
+	packerService *packerservice.PackerService,
 ) *CodegenService {
 	return &CodegenService{
-		log:         log,
-		redisClient: redisClient,
+		log:           log,
+		redisClient:   redisClient,
+		packerService: packerService,
 	}
 }
 
@@ -52,19 +56,28 @@ func (a *CodegenService) Generate(
 	saf.General.Port = rand.IntN(65000) // TODO - ask deploy-service
 
 	trackingId := lib.NewUUID()
-	err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String())
+	err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String(), nil)
 	if err != nil {
 		log.Error("writing redis error", sl.Err(err))
 		return "", err
 	}
 
-	log.Info("starting generate:", saf.General.Owner, saf.General.Name)
+	log.Info("starting generate:", saf.General.Id)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String())
+				err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				return
 			}
-			err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String())
+
+			log.Info("starting packing:", saf.General.Id)
+			err = a.packerService.ProcessProject(saf.General.Id)
+			if err != nil {
+				err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				return
+			}
+
+			err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String(), nil)
 		}()
 		eng.Proceed(saf)
 	}()
