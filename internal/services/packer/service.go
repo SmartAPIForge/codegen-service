@@ -24,29 +24,33 @@ func NewPackerService(
 	}
 }
 
-func (s *PackerService) ProcessProject(projectId string) error {
+func (s *PackerService) PackAndUpload(projectId string) (string, error) {
 	const op = "packer.ProcessProject"
 
 	log := s.log.With(
 		slog.String("op", op),
 	)
 
+	log.Info("Starting packing: ", projectId)
+
 	projectDirPath := filepath.Join("output", projectId)
 	zipPath, err := s.packProject(projectDirPath)
 	if err != nil {
 		log.Error("Error packing project: ", err)
-		return err
+		return " ", err
 	}
 
-	err = s.uploadProject(zipPath, projectId)
+	log.Info("Starting uploading to s3: ", projectId)
+
+	url, err := s.uploadProject(zipPath, projectId)
 	if err != nil {
 		log.Error("Error uploading project: ", err)
-		return err
+		return " ", err
 	}
 
 	s.safeDeleteProject(projectDirPath)
 
-	return nil
+	return url, nil
 }
 
 func (s *PackerService) packProject(projectDirPath string) (string, error) {
@@ -93,14 +97,14 @@ func (s *PackerService) packProject(projectDirPath string) (string, error) {
 	return zipPath, err
 }
 
-func (s *PackerService) uploadProject(zipPath string, projectId string) error {
+func (s *PackerService) uploadProject(zipPath string, projectId string) (string, error) {
 	finalZipFile, err := os.Open(zipPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	err = s.s3Client.UploadFile(finalZipFile, projectId)
-	return err
+	url, err := s.s3Client.UploadFile(finalZipFile, projectId)
+	return url, err
 }
 
 func (s *PackerService) safeDeleteProject(projectDirPath string) {

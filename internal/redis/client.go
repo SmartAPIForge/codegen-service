@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"codegen-service/internal/config"
 	"context"
 	"github.com/go-redis/redis/v8"
 	"time"
@@ -12,29 +13,20 @@ type RedisClient struct {
 	client *redis.Client
 }
 
-func NewRedisClient(addr string, db int) *RedisClient {
+func NewRedisClient(cfg *config.Config) *RedisClient {
 	client := redis.NewClient(&redis.Options{
-		Addr: addr,
-		DB:   db,
+		Addr: cfg.RedisAddress,
+		DB:   cfg.RedisDb,
 	})
 	return &RedisClient{client: client}
 }
 
-func (r *RedisClient) Close() error {
-	return r.client.Close()
-}
-
-func (r *RedisClient) SetData(key, value string, duration *time.Duration) error {
+func (r *RedisClient) SetData(key, value string, duration *time.Duration) {
 	if duration == nil {
 		defaultDuration := 20 * time.Minute
 		duration = &defaultDuration
 	}
-
-	err := r.client.Set(ctx, key, value, *duration).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+	r.client.Set(ctx, key, value, *duration)
 }
 
 func (r *RedisClient) GetData(key string) (string, error) {
