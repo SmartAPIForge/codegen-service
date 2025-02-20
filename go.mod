@@ -4,16 +4,21 @@ go 1.23.0
 
 require (
 	github.com/SmartAPIForge/protos v1.2.4
+	github.com/aws/aws-sdk-go v1.55.6
+	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
 	github.com/joho/godotenv v1.5.1
+	github.com/linkedin/goavro/v2 v2.13.1
 	google.golang.org/grpc v1.70.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

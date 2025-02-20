@@ -1,4 +1,4 @@
-package mapper
+package lib
 
 import codegenProto "github.com/SmartAPIForge/protos/gen/go/codegen"
 

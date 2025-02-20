@@ -2,10 +2,11 @@ package codegenservice
 
 import (
 	"codegen-service/internal/engine"
+	"codegen-service/internal/kafka"
 	"codegen-service/internal/lib"
 	"codegen-service/internal/lib/sl"
-	"codegen-service/internal/mapper"
 	"codegen-service/internal/redis"
+	packerservice "codegen-service/internal/services/packer"
 	"context"
 	"errors"
 	codegenProto "github.com/SmartAPIForge/protos/gen/go/codegen"
@@ -14,17 +15,23 @@ import (
 )
 
 type CodegenService struct {
-	log         *slog.Logger
-	redisClient *redis.RedisClient
+	log           *slog.Logger
+	redisClient   *redis.RedisClient
+	packerService *packerservice.PackerService
+	kafkaProducer *kafka.KafkaProducer
 }
 
 func NewCodegenService(
 	log *slog.Logger,
 	redisClient *redis.RedisClient,
+	packerService *packerservice.PackerService,
+	kafkaProducer *kafka.KafkaProducer,
 ) *CodegenService {
 	return &CodegenService{
-		log:         log,
-		redisClient: redisClient,
+		log:           log,
+		redisClient:   redisClient,
+		packerService: packerService,
+		kafkaProducer: kafkaProducer,
 	}
 }
 
@@ -49,23 +56,39 @@ func (a *CodegenService) Generate(
 		return "", ErrInvalidContract
 	}
 	saf.General.Id = lib.ComposeProjectId(saf)
-	saf.General.Port = rand.IntN(65000) // TODO - ask deploy-service
+	saf.General.Port = rand.IntN(65000)
 
 	trackingId := lib.NewUUID()
-	err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String())
-	if err != nil {
-		log.Error("writing redis error", sl.Err(err))
-		return "", err
-	}
+	a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String(), nil)
 
-	log.Info("starting generate:", saf.General.Owner, saf.General.Name)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String())
+				a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				return
 			}
-			err = a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String())
+
+			url, err := a.packerService.PackAndUpload(saf.General.Id)
+			if err != nil {
+				a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				return
+			}
+
+			nativeNewZip := map[string]interface{}{
+				"owner": saf.General.Owner,
+				"name":  saf.General.Name,
+				"url":   url,
+			}
+			err = a.kafkaProducer.ProduceNewZip(saf.General.Id, nativeNewZip)
+			if err != nil {
+				a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				return
+			}
+
+			a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String(), nil)
 		}()
+
+		log.Info("Starting generate:", saf.General.Id)
 		eng.Proceed(saf)
 	}()
 
@@ -89,5 +112,5 @@ func (a *CodegenService) Track(
 		return codegenProto.GenerationStatus_UNKNOWN, err
 	}
 
-	return mapper.MapToGenerationStatus(status), nil
+	return lib.MapToGenerationStatus(status), nil
 }

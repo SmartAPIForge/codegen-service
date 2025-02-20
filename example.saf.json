@@ -2,7 +2,6 @@
   "general": {
     "name": "testapi",
     "owner": "aaalace",
-    "port": 8080,
     "autoAuth": false
   },
   "models": [
