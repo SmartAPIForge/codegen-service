@@ -17,7 +17,8 @@ var schemasFromThisService = map[string]string{
 }
 
 var schemasForThisService = map[string]*goavro.Codec{
-	"NewZip": nil,
+	"NewZip":        nil,
+	"ProjectStatus": nil,
 }
 
 type SchemaManager struct {
