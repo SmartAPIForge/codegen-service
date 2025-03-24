@@ -55,22 +55,23 @@ func (a *CodegenService) Generate(
 		log.Error("failed to parse contract", sl.Err(err))
 		return "", ErrInvalidContract
 	}
-	saf.General.Id = lib.ComposeProjectId(saf)
+	projectId := lib.ComposeProjectId(saf)
+	saf.General.Id = projectId
 	saf.General.Port = rand.IntN(65000)
 
 	trackingId := lib.NewUUID()
-	a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String(), nil)
+	a.generationPendingStatusFlow(trackingId, projectId)
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				a.generationFailStatusFlow(trackingId, projectId)
 				return
 			}
 
-			url, err := a.packerService.PackAndUpload(saf.General.Id)
+			url, err := a.packerService.PackAndUpload(projectId)
 			if err != nil {
-				a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				a.generationFailStatusFlow(trackingId, projectId)
 				return
 			}
 
@@ -79,16 +80,16 @@ func (a *CodegenService) Generate(
 				"name":  saf.General.Name,
 				"url":   url,
 			}
-			err = a.kafkaProducer.ProduceNewZip(saf.General.Id, nativeNewZip)
+			err = a.kafkaProducer.ProduceNewZip(projectId, nativeNewZip)
 			if err != nil {
-				a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+				a.generationFailStatusFlow(trackingId, projectId)
 				return
 			}
 
-			a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String(), nil)
+			a.generationSuccessStatusFlow(trackingId, projectId)
 		}()
 
-		log.Info("Starting generate:", saf.General.Id)
+		log.Info("Starting generate:", projectId)
 		eng.Proceed(saf)
 	}()
 
@@ -113,4 +114,34 @@ func (a *CodegenService) Track(
 	}
 
 	return lib.MapToGenerationStatus(status), nil
+}
+
+func (a *CodegenService) generationPendingStatusFlow(trackingId, projectId string) {
+	a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_PENDING.String(), nil)
+
+	nativeProjectStatus := map[string]interface{}{
+		"id":     projectId,
+		"status": lib.ExternalStatusPending,
+	}
+	_ = a.kafkaProducer.ProduceProjectStatus(projectId, nativeProjectStatus)
+}
+
+func (a *CodegenService) generationSuccessStatusFlow(trackingId, projectId string) {
+	a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_SUCCESS.String(), nil)
+
+	nativeProjectStatus := map[string]interface{}{
+		"id":     projectId,
+		"status": lib.ExternalStatusGenerated,
+	}
+	_ = a.kafkaProducer.ProduceProjectStatus(projectId, nativeProjectStatus)
+}
+
+func (a *CodegenService) generationFailStatusFlow(trackingId, projectId string) {
+	a.redisClient.SetData(trackingId, codegenProto.GenerationStatus_FAIL.String(), nil)
+
+	nativeProjectStatus := map[string]interface{}{
+		"id":     projectId,
+		"status": lib.ExternalStatusFailedToGenerate,
+	}
+	_ = a.kafkaProducer.ProduceProjectStatus(projectId, nativeProjectStatus)
 }

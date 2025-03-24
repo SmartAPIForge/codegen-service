@@ -42,6 +42,19 @@ func (kp *KafkaProducer) ProduceNewZip(key string, native map[string]interface{}
 	return nil
 }
 
+func (kp *KafkaProducer) ProduceProjectStatus(key string, native map[string]interface{}) error {
+	kp.log.Info("Sending ProjectStatus message: ", key, native)
+
+	err := kp.produce("ProjectStatus", key, native)
+	if err != nil {
+		kp.log.Error("Error sending ProjectStatus message: ", key, err)
+		return err
+	}
+
+	kp.log.Error("Successfully sent ProjectStatus message: ", key)
+	return nil
+}
+
 func (kp *KafkaProducer) produce(topic string, key string, native map[string]interface{}) error {
 	codec, err := kp.schemaManager.GetCodec(topic)
 	if err != nil {
