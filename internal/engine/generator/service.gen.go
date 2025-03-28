@@ -31,6 +31,14 @@ func (g *Generator) GenerateService(saf *models.Saf, model *models.Model) {
 
 func (g *Generator) fetchServiceRawData(saf *models.Saf, model *models.Model) *raw.ServiceRawData {
 	var methods []raw.ServiceMethod
+	
+	// Карта для отслеживания существующих методов
+	existingMethods := make(map[string]bool)
+	
+	// Стандартные типы HTTP-методов
+	standardMethods := []string{"GET", "POST", "DELETE"}
+	
+	// Сначала создаем методы из эндпоинтов модели
 	for _, endpoint := range model.Endpoints {
 		methodName := "Handle" + endpoint.Type + g.ToUC(model.Name)
 		dtoName := fmt.Sprintf("%s%sDTO", g.ToUC(endpoint.Type), g.ToUC(model.Name))
@@ -43,6 +51,30 @@ func (g *Generator) fetchServiceRawData(saf *models.Saf, model *models.Model) *r
 			Endpoint:    &endpoint,
 		}
 		methods = append(methods, method)
+		existingMethods[endpoint.Type] = true
+	}
+	
+	// Затем добавляем методы для всех стандартных HTTP методов, которых нет в эндпоинтах
+	for _, methodType := range standardMethods {
+		if !existingMethods[methodType] {
+			// Создаем пустой эндпоинт для этого метода
+			emptyEndpoint := models.Endpoint{
+				Type:        methodType,
+				ResponseDTO: []string{"id"}, // Минимальный DTO, содержащий только id
+			}
+			
+			methodName := "Handle" + methodType + g.ToUC(model.Name)
+			dtoName := fmt.Sprintf("%s%sDTO", g.ToUC(methodType), g.ToUC(model.Name))
+			
+			method := raw.ServiceMethod{
+				Type:        methodType,
+				Name:        methodName,
+				ResponseDTO: dtoName,
+				DTOFields:   []string{"id"},
+				Endpoint:    &emptyEndpoint,
+			}
+			methods = append(methods, method)
+		}
 	}
 
 	rawData := raw.ServiceRawData{

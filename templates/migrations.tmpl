@@ -1,8 +1,10 @@
 {{- range .Models -}}
 CREATE TABLE IF NOT EXISTS {{ .NameLC }} (
-{{- range .Fields }}
-    {{ .Name }} {{ .SQLType }}{{ if .IsUnique }} UNIQUE{{ end }},
-{{- end}}
-    PRIMARY KEY ({{ .PrimaryKeyField }})
+    id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE
+    {{- range .Fields -}}
+        {{- if ne .Name "id" -}}
+            , {{ .Name }} {{ .SQLType }}{{ if .IsUnique }} UNIQUE{{ end }}
+        {{- end -}}
+    {{- end -}}
 );
 {{ end -}}

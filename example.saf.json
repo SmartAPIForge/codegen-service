@@ -9,19 +9,11 @@
       "name": "starship",
       "fields": [
         {
-          "primary": true,
-          "name": "id",
-          "type": "int",
-          "isUnique": true
-        },
-        {
-          "primary": false,
           "name": "title",
           "type": "string",
           "isUnique": false
         },
         {
-          "primary": false,
           "name": "finished",
           "type": "bool",
           "isUnique": false
@@ -43,6 +35,34 @@
           "type": "DELETE",
           "query": ["id"],
           "responseDTO": ["id"],
+          "private": true
+        }
+      ]
+    },
+    {
+      "name": "almaz",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "isUnique": false
+        },
+        {
+          "name": "clever",
+          "type": "bool",
+          "isUnique": false
+        }
+      ],
+      "endpoints": [
+        {
+          "type": "GET",
+          "query": ["name"],
+          "responseDTO": [],
+          "private": false
+        },
+        {
+          "type": "POST",
+          "responseDTO": ["name"],
           "private": true
         }
       ]

@@ -19,7 +19,9 @@ func InitService(db *sql.DB) {
 
 func Register{{.ModelNameUC}}Routes(r *mux.Router) {
 {{- range .Routes}}
+    {{- if .IsRegistered}}
 	r.HandleFunc("/{{$.ModelName}}", {{.Method}}).Methods("{{.Method}}")
+    {{- end}}
 {{- end}}
 }
 

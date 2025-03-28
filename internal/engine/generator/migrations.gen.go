@@ -23,7 +23,6 @@ func (g *Generator) fetchMigrationRawData(saf *models.Saf) *raw.MigrationRawData
 	var extendedModels []raw.ExtendedMigrationModel
 	for _, model := range saf.Models {
 		var fields []raw.ExtendedMigrationField
-		var primaryKeyField string
 		for _, field := range model.Fields {
 			extendedField := raw.ExtendedMigrationField{
 				Name:     field.Name,
@@ -31,15 +30,11 @@ func (g *Generator) fetchMigrationRawData(saf *models.Saf) *raw.MigrationRawData
 				IsUnique: field.IsUnique,
 			}
 			fields = append(fields, extendedField)
-			if field.Primary {
-				primaryKeyField = field.Name
-			}
 		}
 		extendedModel := raw.ExtendedMigrationModel{
 			NameUC:          g.ToUC(model.Name),
 			NameLC:          g.ToLower(model.Name),
 			Fields:          fields,
-			PrimaryKeyField: primaryKeyField,
 		}
 		extendedModels = append(extendedModels, extendedModel)
 	}

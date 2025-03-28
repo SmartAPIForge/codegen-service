@@ -28,7 +28,7 @@ func (s *Service) {{.Name}}({{if eq .Type "POST" -}}data map[string]interface{}{
 		return nil, errors.New("параметры не переданы")
 		}
 
-		query := "SELECT {{range $i, $f := .DTOFields}}{{if $i}}, {{end}}{{$f}}{{end}} FROM {{$.ModelName}} WHERE 1=1"
+		query := "SELECT id{{range $f := .DTOFields}}{{if ne $f "id"}}, {{$f}}{{end}}{{end}} FROM {{$.ModelName}} WHERE 1=1"
 		args := []interface{}{}
 
 		{{range $i, $f := .Endpoint.Query}}
@@ -42,7 +42,7 @@ func (s *Service) {{.Name}}({{if eq .Type "POST" -}}data map[string]interface{}{
 
 		response := &dto.{{.ResponseDTO}}{}
 
-		err := row.Scan({{range $i, $f := .DTOFields}}{{if $i}}, {{end}}&response.{{ToUC $f}}{{end}})
+		err := row.Scan(&response.Id{{range $f := .DTOFields}}{{if ne $f "id"}}, &response.{{ToUC $f}}{{end}}{{end}})
 		if err != nil {
 		if err == sql.ErrNoRows {
 		return nil, errors.New("запись не найдена")
@@ -61,25 +61,27 @@ func (s *Service) {{.Name}}({{if eq .Type "POST" -}}data map[string]interface{}{
 		values := []interface{}{}
 
 		{{range $i, $f := $.Fields}}
+			{{if ne $f.Name "id"}}
 			if val, ok := data["{{$f.Name}}"]; ok {
 			fields = append(fields, "{{$f.Name}}")
 			placeholders = append(placeholders, fmt.Sprintf("$%d", len(values)+1))
 			values = append(values, val)
 			}
+			{{end}}
 		{{end}}
 
 		if len(fields) == 0 {
 		return nil, errors.New("нет данных для вставки")
 		}
 
-		query := fmt.Sprintf("INSERT INTO {{$.ModelName}} (%s) VALUES (%s) RETURNING {{range $i, $f := .DTOFields}}{{if $i}}, {{end}}{{$f}}{{end}}",
+		query := fmt.Sprintf("INSERT INTO {{$.ModelName}} (%s) VALUES (%s) RETURNING id{{range $f := .DTOFields}}{{if ne $f "id"}}, {{$f}}{{end}}{{end}}",
 		strings.Join(fields, ", "), strings.Join(placeholders, ", "))
 
 		row := s.db.QueryRow(query, values...)
 
 		response := &dto.{{.ResponseDTO}}{}
 
-		err := row.Scan({{range $i, $f := .DTOFields}}{{if $i}}, {{end}}&response.{{ToUC $f}}{{end}})
+		err := row.Scan(&response.Id{{range $f := .DTOFields}}{{if ne $f "id"}}, &response.{{ToUC $f}}{{end}}{{end}})
 		if err != nil {
 		return nil, err
 		}
@@ -104,13 +106,13 @@ func (s *Service) {{.Name}}({{if eq .Type "POST" -}}data map[string]interface{}{
 		return nil, errors.New("не указаны параметры для удаления")
 		}
 
-		query += " RETURNING {{range $i, $f := .DTOFields}}{{if $i}}, {{end}}{{$f}}{{end}}"
+		query += " RETURNING id{{range $f := .DTOFields}}{{if ne $f "id"}}, {{$f}}{{end}}{{end}}"
 
 		row := s.db.QueryRow(query, args...)
 
 		response := &dto.{{.ResponseDTO}}{}
 
-		err := row.Scan({{range $i, $f := .DTOFields}}{{if $i}}, {{end}}&response.{{ToUC $f}}{{end}})
+		err := row.Scan(&response.Id{{range $f := .DTOFields}}{{if ne $f "id"}}, &response.{{ToUC $f}}{{end}}{{end}})
 		if err != nil {
 		if err == sql.ErrNoRows {
 		return response, errors.New("запись не найдена")

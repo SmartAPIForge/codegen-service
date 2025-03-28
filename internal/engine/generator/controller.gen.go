@@ -21,12 +21,34 @@ func (g *Generator) GenerateController(model *models.Model) {
 
 func (g *Generator) fetchControllerRawData(model *models.Model) *raw.ControllerRawData {
 	var routes []raw.Route
+
+	// Сначала генерируем все стандартные типы методов
+	standardMethods := []string{"GET", "POST", "DELETE"}
+
+	// Создаем карту для отслеживания существующих методов из эндпоинтов
+	existingMethods := make(map[string]bool)
+
+	// Сначала добавляем существующие эндпоинты
 	for _, endpoint := range model.Endpoints {
 		route := raw.Route{
-			Method: endpoint.Type,
+			Method:       endpoint.Type,
+			IsRegistered: true,
 		}
 		routes = append(routes, route)
+		existingMethods[endpoint.Type] = true
 	}
+
+	// Добавляем недостающие методы, которые нет в эндпоинтах
+	for _, method := range standardMethods {
+		if !existingMethods[method] {
+			route := raw.Route{
+				Method:       method,
+				IsRegistered: false,
+			}
+			routes = append(routes, route)
+		}
+	}
+
 	rawData := raw.ControllerRawData{
 		ModelName:   model.Name,
 		ModelNameUC: g.ToUC(model.Name),
