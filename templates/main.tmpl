@@ -5,6 +5,7 @@ import (
 	"{{ $.General.Id }}/{{ .Name }}"
 {{- end}}
 	"{{ .General.Id }}/db"
+	"database/sql"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -14,11 +15,22 @@ func main() {
 	migrationFilePath := "./migrations/migration.sql"
 	db.InitDB()
 	db.ApplyMigrations(migrationFilePath)
-
+	
+	dbConn := db.GetDB()
+	
+	initServices(dbConn)
+	
 	r := mux.NewRouter()
 	registerRoutes(r)
-
+	
+	log.Printf("Сервер запущен на порту %d\n", 8080)
 	log.Fatal(http.ListenAndServe(":8080", r))
+}
+
+func initServices(dbConn *sql.DB) {
+{{- range .Models}}
+	{{ .Name }}.InitService(dbConn)
+{{- end}}
 }
 
 func registerRoutes(r *mux.Router) {

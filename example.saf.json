@@ -41,6 +41,7 @@
         },
         {
           "type": "DELETE",
+          "query": ["id"],
           "responseDTO": ["id"],
           "private": true
         }

@@ -1,0 +1,126 @@
+package {{.ModelName}}
+
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
+	dto "{{$.General.Id}}/{{.ModelName}}/dto"
+)
+
+
+type Service struct {
+	db *sql.DB
+}
+
+
+func NewService(db *sql.DB) *Service {
+	return &Service{
+		db: db,
+	}
+}
+
+{{range .Methods}}
+
+func (s *Service) {{.Name}}({{if eq .Type "POST" -}}data map[string]interface{}{{- end -}}{{if eq .Type "DELETE" -}}params map[string]interface{}{{- end -}}{{if eq .Type "GET" -}}params map[string]interface{}{{- end}}) (*dto.{{.ResponseDTO}}, error) {
+	{{if eq .Type "GET"}}
+		if params == nil {
+		return nil, errors.New("параметры не переданы")
+		}
+
+		query := "SELECT {{range $i, $f := .DTOFields}}{{if $i}}, {{end}}{{$f}}{{end}} FROM {{$.ModelName}} WHERE 1=1"
+		args := []interface{}{}
+
+		{{range $i, $f := .Endpoint.Query}}
+			if val, ok := params["{{$f}}"]; ok {
+			query += fmt.Sprintf(" AND {{$f}} = $%d", len(args)+1)
+			args = append(args, val)
+			}
+		{{end}}
+
+		row := s.db.QueryRow(query, args...)
+
+		response := &dto.{{.ResponseDTO}}{}
+
+		err := row.Scan({{range $i, $f := .DTOFields}}{{if $i}}, {{end}}&response.{{ToUC $f}}{{end}})
+		if err != nil {
+		if err == sql.ErrNoRows {
+		return nil, errors.New("запись не найдена")
+		}
+		return nil, err
+		}
+
+		return response, nil
+	{{else if eq .Type "POST"}}
+		if data == nil {
+		return nil, errors.New("данные не переданы")
+		}
+
+		fields := []string{}
+		placeholders := []string{}
+		values := []interface{}{}
+
+		{{range $i, $f := $.Fields}}
+			if val, ok := data["{{$f.Name}}"]; ok {
+			fields = append(fields, "{{$f.Name}}")
+			placeholders = append(placeholders, fmt.Sprintf("$%d", len(values)+1))
+			values = append(values, val)
+			}
+		{{end}}
+
+		if len(fields) == 0 {
+		return nil, errors.New("нет данных для вставки")
+		}
+
+		query := fmt.Sprintf("INSERT INTO {{$.ModelName}} (%s) VALUES (%s) RETURNING {{range $i, $f := .DTOFields}}{{if $i}}, {{end}}{{$f}}{{end}}",
+		strings.Join(fields, ", "), strings.Join(placeholders, ", "))
+
+		row := s.db.QueryRow(query, values...)
+
+		response := &dto.{{.ResponseDTO}}{}
+
+		err := row.Scan({{range $i, $f := .DTOFields}}{{if $i}}, {{end}}&response.{{ToUC $f}}{{end}})
+		if err != nil {
+		return nil, err
+		}
+
+		return response, nil
+	{{else if eq .Type "DELETE"}}
+		if params == nil {
+		return nil, errors.New("параметры не переданы")
+		}
+
+		query := "DELETE FROM {{$.ModelName}} WHERE 1=1"
+		args := []interface{}{}
+
+		{{range $i, $f := .Endpoint.Query}}
+			if val, ok := params["{{$f}}"]; ok {
+			query += fmt.Sprintf(" AND {{$f}} = $%d", len(args)+1)
+			args = append(args, val)
+			}
+		{{end}}
+
+		if len(args) == 0 {
+		return nil, errors.New("не указаны параметры для удаления")
+		}
+
+		query += " RETURNING {{range $i, $f := .DTOFields}}{{if $i}}, {{end}}{{$f}}{{end}}"
+
+		row := s.db.QueryRow(query, args...)
+
+		response := &dto.{{.ResponseDTO}}{}
+
+		err := row.Scan({{range $i, $f := .DTOFields}}{{if $i}}, {{end}}&response.{{ToUC $f}}{{end}})
+		if err != nil {
+		if err == sql.ErrNoRows {
+		return response, errors.New("запись не найдена")
+		}
+		return nil, err
+		}
+
+		return response, nil
+	{{else}}
+	return nil, errors.New("метод не реализован")
+	{{end}}
+	}
+{{end}}

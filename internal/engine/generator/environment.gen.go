@@ -50,22 +50,5 @@ func (g *Generator) CopyDockerfile() {
 }
 
 func (g *Generator) CopyTaskFile() {
-	srcPath := "./assets/Taskfile.yml"
-	destPath := fmt.Sprintf("%s/Taskfile.yml", g.projectRoot)
 
-	srcFile, err := os.Open(srcPath)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to open source Taskfile.yml: %v", err))
-	}
-	defer srcFile.Close()
-
-	destFile, err := os.Create(destPath)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create destination Taskfile.yml: %v", err))
-	}
-	defer destFile.Close()
-
-	if _, err := io.Copy(destFile, srcFile); err != nil {
-		panic(fmt.Sprintf("Failed to copy Taskfile.yml: %v", err))
-	}
 }
