@@ -1,6 +1,6 @@
 # codegen-service
 
-This service provides core of code generation and related api in SmartAPIForge backend system
+This service provides an engine of code generation and related api in SmartAPIForge backend system
 
 ### Get prepared:
 

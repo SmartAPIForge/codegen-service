@@ -10,7 +10,6 @@ type ExtendedMigrationModel struct {
 	NameUC          string
 	NameLC          string
 	Fields          []ExtendedMigrationField
-	PrimaryKeyField string
 }
 
 type MigrationRawData struct {

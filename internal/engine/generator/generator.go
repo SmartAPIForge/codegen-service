@@ -13,7 +13,21 @@ type Generator struct {
 }
 
 func NewGenerator(projectRoot string) *Generator {
-	templates, err := template.ParseGlob("templates/*.tmpl")
+	// Создаем функции для шаблонизатора
+	funcMap := template.FuncMap{
+		"ToUC": func(s string) string {
+			if len(s) == 0 {
+				return s
+			}
+			return strings.ToUpper(string(s[0])) + s[1:]
+		},
+	}
+	
+	// Создаем шаблонизатор с функциями
+	templates := template.New("").Funcs(funcMap)
+	
+	// Парсим все шаблоны
+	templates, err := templates.ParseGlob("templates/*.tmpl")
 	if err != nil {
 		panic(err)
 	}

@@ -1,18 +1,87 @@
 package {{.ModelName}}
 
 import (
+	"database/sql"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 )
+
+
+var service *Service
+
+
+func InitService(db *sql.DB) {
+	service = NewService(db)
+}
+
 
 func Register{{.ModelNameUC}}Routes(r *mux.Router) {
 {{- range .Routes}}
+    {{- if .IsRegistered}}
 	r.HandleFunc("/{{$.ModelName}}", {{.Method}}).Methods("{{.Method}}")
+    {{- end}}
 {{- end}}
 }
 
 {{range .Routes}}
-func {{.Method}}(w http.ResponseWriter, r *http.Request) {
 
+func {{.Method}}(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	{{if eq .Method "GET"}}
+
+	params := make(map[string]interface{})
+	query := r.URL.Query()
+	for key, values := range query {
+		if len(values) > 0 {
+			params[key] = values[0]
+		}
+	}
+	
+
+	result, err := service.HandleGET{{$.ModelNameUC}}(params)
+	{{else if eq .Method "POST"}}
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+
+	result, err := service.HandlePOST{{$.ModelNameUC}}(data)
+	{{else if eq .Method "DELETE"}}
+
+	params := make(map[string]interface{})
+	query := r.URL.Query()
+	for key, values := range query {
+		if len(values) > 0 {
+
+			if key == "id" {
+				id, err := strconv.Atoi(values[0])
+				if err != nil {
+					http.Error(w, "Неверный ID", http.StatusBadRequest)
+					return
+				}
+				params[key] = id
+			} else {
+				params[key] = values[0]
+			}
+		}
+	}
+	
+
+	result, err := service.HandleDELETE{{$.ModelNameUC}}(params)
+	{{end}}
+	
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+
+	json.NewEncoder(w).Encode(result)
 }
 {{end}}
