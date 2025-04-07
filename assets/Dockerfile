@@ -4,11 +4,9 @@ WORKDIR /app
 
 COPY go.mod ./
 
-RUN go mod tidy
-
-COPY go.sum ./
-
 COPY . .
+
+RUN go mod tidy
 
 RUN CGO_ENABLED=1 go build -o main .
 
