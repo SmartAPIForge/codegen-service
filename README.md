@@ -2,6 +2,8 @@
 
 This service provides an engine of code generation and related api in SmartAPIForge backend system
 
+Core functionality
+
 ### Get prepared:
 
 ##### Fast init
